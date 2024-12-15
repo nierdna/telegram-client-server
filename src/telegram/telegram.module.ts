@@ -4,6 +4,7 @@ import { TelegramService } from './services/telegram.service';
 import { ClientService } from './services/client.service';
 import { EventService } from './services/event.service';
 import { MessageService } from './services/message.service';
+import { ResponseService } from './services/response.service';
 import telegramConfig from './config/telegram.config';
 
 @Module({
@@ -14,6 +15,7 @@ import telegramConfig from './config/telegram.config';
     ClientService,
     EventService,
     MessageService,
+    ResponseService,
     TelegramService,
   ],
   exports: [TelegramService],
