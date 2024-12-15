@@ -16,7 +16,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit() {
     try {
-      await this.clientManagerService.onModuleInit();
+      await this.clientManagerService.start();
       this.logger.log("✅ - Telegram service initialized successfully");
     } catch (error) {
       this.logger.error("❌ - Failed to initialize Telegram service:", error);
@@ -26,7 +26,7 @@ export class TelegramService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleDestroy() {
     try {
-      await this.clientManagerService.onModuleDestroy();
+      await this.clientManagerService.stop();
       this.logger.log("✅ - Telegram service destroyed successfully");
     } catch (error) {
       this.logger.error("❌ - Failed to destroy Telegram service:", error);

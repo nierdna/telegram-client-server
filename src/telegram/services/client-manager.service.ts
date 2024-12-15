@@ -26,11 +26,11 @@ export class ClientManagerService {
     private readonly clientFactory: ClientFactory
   ) {}
 
-  async onModuleInit() {
+  async start() {
     await this.initializeClients();
   }
 
-  async onModuleDestroy() {
+  async stop() {
     await this.disconnectAllClients();
   }
 
@@ -41,11 +41,7 @@ export class ClientManagerService {
       });
 
       for (const config of configs) {
-        const client = await this.initializeClient(config);
-        if (client) {
-          // Set up event handlers after client is initialized
-          await client.clientService.eventService.setupEventHandlers();
-        }
+        await this.initializeClient(config);
       }
 
       this.logger.log(
@@ -103,10 +99,7 @@ export class ClientManagerService {
     const config = this.clientRepository.create(clientConfig);
     const savedConfig = await this.clientRepository.save(config);
 
-    const client = await this.initializeClient(savedConfig);
-    if (client) {
-      await client.clientService.eventService.setupEventHandlers();
-    }
+    await this.initializeClient(savedConfig);
 
     return savedConfig;
   }
