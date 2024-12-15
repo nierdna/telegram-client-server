@@ -1,24 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { NewMessage } from 'telegram/events';
 import { TelegramEvent } from '../interfaces/telegram-event.interface';
-import { ClientService } from './client.service';
 import { MessageHandler } from '../handlers/message.handler';
 import { ResponseService } from './response.service';
 import { ReactionService } from './reaction.service';
+import { ClientService } from './client.service';
 
 @Injectable()
 export class EventService {
   private readonly logger = new Logger(EventService.name);
-  private messageHandler: MessageHandler;
+  private messageHandler: MessageHandler | null = null;
   private isSetup = false;
 
   constructor(
     private readonly clientService: ClientService,
     private readonly responseService: ResponseService,
     private readonly reactionService: ReactionService,
-  ) {
-    this.messageHandler = new MessageHandler(this.clientService.getGroupId());
-  }
+  ) {}
 
   async setupEventHandlers() {
     if (this.isSetup) {
@@ -27,19 +25,18 @@ export class EventService {
     }
 
     try {
+      const groupIds = this.clientService.getGroupIds();
+      this.messageHandler = new MessageHandler(groupIds);
+
       const client = this.clientService.getClient();
-      if (!client) {
-        throw new Error('Telegram client not initialized');
-      }
       
-      client.addEventHandler(async (event) => {
-        const telegramEvent = await this.messageHandler.handleNewMessage(event);
-        if (telegramEvent) {
-          await this.processNewMessage(telegramEvent);
-        }
-      }, new NewMessage({
-        chats: [this.clientService.getGroupId()]
-      }));
+      // Set up event handler for new messages
+      client.addEventHandler(
+        async (event) => {
+          await this.handleEvent(event);
+        },
+        new NewMessage(this.messageHandler.getNewMessageOptions())
+      );
 
       this.isSetup = true;
       this.logger.log('Event handlers set up successfully');
@@ -49,23 +46,47 @@ export class EventService {
     }
   }
 
+  private async handleEvent(event: any) {
+    try {
+      if (!this.messageHandler) {
+        throw new Error('Message handler not initialized');
+      }
+
+      const telegramEvent = await this.messageHandler.handleNewMessage(event);
+      if (telegramEvent) {
+        await this.processNewMessage(telegramEvent);
+      }
+    } catch (error) {
+      this.logger.error('Error handling event:', error);
+    }
+  }
+
   private async processNewMessage(event: TelegramEvent) {
-    this.logger.log(`New message in group: ${event.message?.text}`);
-    
-    if (event.message) {
+    if (!event.message) {
+      return;
+    }
+
+    const client = this.clientService.getClient();
+    const groupId = event.message.fromId?.toString() || '';
+
+    this.logger.log(`Processing message in group ${groupId}: ${event.message.text}`);
+
+    try {
       // Handle AI response
       await this.responseService.handleMessage(
         event.message,
-        this.clientService.getClient(),
-        this.clientService.getGroupId()
+        client,
+        groupId
       );
 
       // Handle reaction
       await this.reactionService.handleReaction(
         event.message,
-        this.clientService.getClient(),
-        this.clientService.getGroupId()
+        client,
+        groupId
       );
+    } catch (error) {
+      this.logger.error('Error processing message:', error);
     }
   }
 }

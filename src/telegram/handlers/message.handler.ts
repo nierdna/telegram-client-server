@@ -1,20 +1,19 @@
 import { Logger } from '@nestjs/common';
-import { NewMessage, NewMessageEvent } from 'telegram/events';
 import { TelegramEvent } from '../interfaces/telegram-event.interface';
 import { Message } from '../interfaces/message.interface';
 
 export class MessageHandler {
   private readonly logger = new Logger(MessageHandler.name);
 
-  constructor(private readonly groupId: string) {}
+  constructor(private readonly groupIds: string[]) {}
 
   getNewMessageOptions() {
     return {
-      chats: [this.groupId]
+      chats: this.groupIds
     };
   }
 
-  async handleNewMessage(event: NewMessageEvent): Promise<TelegramEvent | null> {
+  async handleNewMessage(event: any): Promise<TelegramEvent | null> {
     try {
       if (!this.isValidGroupMessage(event)) {
         return null;
@@ -28,9 +27,9 @@ export class MessageHandler {
     }
   }
 
-  private isValidGroupMessage(event: NewMessageEvent): boolean {
-    return true;
-    return event.message?.chat?.id?.toString() === this.groupId;
+  private isValidGroupMessage(event: any): boolean {
+    const chatId = event.message?.chat?.id?.toString();
+    return this.groupIds.includes(chatId);
   }
 
   private parseMessage(event: any): Message {
