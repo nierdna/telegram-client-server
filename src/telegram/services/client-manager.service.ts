@@ -54,7 +54,8 @@ export class ClientManagerService {
   }
 
   private async initializeClient(
-    config: TelegramClientEntity
+    config: TelegramClientEntity,
+    maxRetries: number = 3
   ): Promise<ActiveClient | null> {
     try {
       const clientService = this.clientFactory.createClient(
@@ -77,6 +78,10 @@ export class ClientManagerService {
       return activeClient;
     } catch (error) {
       this.logger.error(`Failed to initialize client ${config.id}:`, error);
+      if (maxRetries > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 10000));
+        return this.initializeClient(config, maxRetries - 1);
+      }
       return null;
     }
   }
