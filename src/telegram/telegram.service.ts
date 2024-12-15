@@ -1,20 +1,35 @@
-import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
+import {
+  Injectable,
+  Logger,
+  OnApplicationShutdown,
+  OnModuleDestroy,
+  OnModuleInit,
+} from "@nestjs/common";
 import { ClientManagerService } from "./services/client-manager.service";
 import { TelegramClient } from "telegram";
 
 @Injectable()
-export class TelegramService implements OnModuleInit {
+export class TelegramService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(TelegramService.name);
 
   constructor(private readonly clientManagerService: ClientManagerService) {}
 
   async onModuleInit() {
     try {
-      // ClientManagerService will handle initialization of all clients
       await this.clientManagerService.onModuleInit();
-      this.logger.log("Telegram service initialized successfully");
+      this.logger.log("✅ - Telegram service initialized successfully");
     } catch (error) {
-      this.logger.error("Failed to initialize Telegram service:", error);
+      this.logger.error("❌ - Failed to initialize Telegram service:", error);
+      throw error;
+    }
+  }
+
+  async onModuleDestroy() {
+    try {
+      await this.clientManagerService.onModuleDestroy();
+      this.logger.log("✅ - Telegram service destroyed successfully");
+    } catch (error) {
+      this.logger.error("❌ - Failed to destroy Telegram service:", error);
       throw error;
     }
   }

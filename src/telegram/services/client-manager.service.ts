@@ -16,7 +16,7 @@ interface ActiveClient {
 }
 
 @Injectable()
-export class ClientManagerService implements OnModuleInit, OnModuleDestroy {
+export class ClientManagerService {
   private readonly logger = new Logger(ClientManagerService.name);
   private activeClients: Map<number, ActiveClient> = new Map();
 

@@ -21,6 +21,8 @@ async function bootstrap() {
 
   await app.listen(3000);
   logger.log('Application is running on: http://localhost:3000');
-  logger.log('Swagger documentation is available at: http://localhost:3000/api');
+  logger.log(
+    "Swagger documentation is available at: http://localhost:3000/docs"
+  );
 }
 bootstrap();
