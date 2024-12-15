@@ -2,15 +2,24 @@ import { Injectable, Logger } from "@nestjs/common";
 import axios from "axios";
 import { MessageService } from "./message.service";
 import { Message } from "../interfaces/message.interface";
+import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class ResponseService {
+  private readonly aiReplyAssistantUrl: string;
   private readonly logger = new Logger(ResponseService.name);
   private nextResponseTime: number | null = null;
   private readonly MIN_DELAY_MINUTES = 1;
   private readonly MAX_DELAY_MINUTES = 5;
 
-  constructor(private readonly messageService: MessageService) {}
+  constructor(
+    private readonly messageService: MessageService,
+    private readonly configService: ConfigService
+  ) {
+    this.aiReplyAssistantUrl = this.configService.get<string>(
+      "ai-reply-assistant.url"
+    ) as string;
+  }
 
   async handleMessage(
     message: Message,
@@ -62,7 +71,7 @@ export class ResponseService {
   private async getAIResponse(message: string): Promise<string> {
     try {
       const response = await axios.post(
-        "https://bolt-ai-reply-assistan-server.vercel.app/api/chat",
+        this.aiReplyAssistantUrl + "/api/chat",
         { message },
         { headers: { "Content-Type": "application/json" } }
       );
