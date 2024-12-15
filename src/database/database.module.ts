@@ -20,9 +20,12 @@ import databaseConfig from "./config/database.config";
         database: configService.get("database.database"),
         entities: [TelegramClient],
         synchronize: configService.get("database.synchronize"),
-        ssl: {
-          rejectUnauthorized: false,
-        },
+        ssl:
+          process.env.NODE_ENV !== "local"
+            ? {
+                rejectUnauthorized: false,
+              }
+            : false,
       }),
       inject: [ConfigService],
     }),

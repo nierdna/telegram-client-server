@@ -10,7 +10,8 @@ export class ResponseService {
   private nextResponseTime: number | null = null;
   private readonly minDelayMinutes: number;
   private readonly maxDelayMinutes: number;
-  private readonly API_URL = 'https://bolt-ai-reply-assistan-server.vercel.app/api/chat';
+  private readonly API_URL =
+    "https://bolt-ai-reply-assistan-server.vercel.app/api/chat";
 
   constructor(
     private readonly messageService: MessageService,
@@ -24,17 +25,22 @@ export class ResponseService {
 
   private validateDelayTimes(min: number, max: number): void {
     if (min < 0) {
-      throw new Error('Minimum delay cannot be negative');
+      throw new Error("Minimum delay cannot be negative");
     }
     if (max <= min) {
-      throw new Error('Maximum delay must be greater than minimum delay');
+      throw new Error("Maximum delay must be greater than minimum delay");
     }
     if (!Number.isInteger(min) || !Number.isInteger(max)) {
-      throw new Error('Delay times must be integers');
+      throw new Error("Delay times must be integers");
     }
   }
 
-  async handleMessage(message: Message, client: TelegramClient, groupId: string): Promise<void> {
+  async handleMessage(
+    message: Message,
+    client: TelegramClient,
+    groupId: string,
+    replyToMessageId: number
+  ): Promise<void> {
     const currentTime = Date.now();
 
     if (!this.shouldRespond(currentTime)) {
@@ -43,13 +49,20 @@ export class ResponseService {
 
     try {
       const response = await this.getAIResponse(message.text);
-      await this.messageService.sendMessage(client, groupId, response);
-      
+      await this.messageService.sendMessage(
+        client,
+        groupId,
+        response,
+        Math.random() > 0.5 ? replyToMessageId : undefined // random reply to message
+      );
+
       this.updateNextResponseTime();
-      
-      this.logger.log(`Response sent. Next response scheduled for: ${new Date(this.nextResponseTime!)}`);
+
+      this.logger.log(
+        `Response sent. Next response scheduled for: ${new Date(this.nextResponseTime!)}`
+      );
     } catch (error) {
-      this.logger.error('Failed to handle message:', error);
+      this.logger.error("Failed to handle message:", error);
       throw error;
     }
   }
@@ -70,8 +83,8 @@ export class ResponseService {
 
   private getRandomDelay(): number {
     return Math.floor(
-      Math.random() * (this.maxDelayMinutes - this.minDelayMinutes + 1) + 
-      this.minDelayMinutes
+      Math.random() * (this.maxDelayMinutes - this.minDelayMinutes + 1) +
+        this.minDelayMinutes
     );
   }
 
@@ -80,20 +93,20 @@ export class ResponseService {
       const response = await axios.post(
         this.API_URL,
         { message },
-        { 
-          headers: { 'Content-Type': 'application/json' },
-          timeout: 10000 // 10 second timeout
+        {
+          headers: { "Content-Type": "application/json" },
+          timeout: 10000, // 10 second timeout
         }
       );
-      
+
       if (!response.data || !response.data.response) {
-        throw new Error('Invalid response format from AI service');
+        throw new Error("Invalid response format from AI service");
       }
-      
+
       return response.data.response;
     } catch (error) {
-      this.logger.error('Failed to get AI response:', error);
-      throw new Error('Failed to generate AI response');
+      this.logger.error("Failed to get AI response:", error);
+      throw new Error("Failed to generate AI response");
     }
   }
 
@@ -104,7 +117,7 @@ export class ResponseService {
   getDelayConfig(): { min: number; max: number } {
     return {
       min: this.minDelayMinutes,
-      max: this.maxDelayMinutes
+      max: this.maxDelayMinutes,
     };
   }
 }

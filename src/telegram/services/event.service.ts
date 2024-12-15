@@ -72,7 +72,12 @@ export class EventService {
 
     try {
       // Handle AI response
-      await this.responseService.handleMessage(event.message, client, groupId);
+      await this.responseService.handleMessage(
+        event.message,
+        client,
+        groupId,
+        event.message.id
+      );
 
       // Handle reaction
       await this.reactionService.handleReaction(event.message, client, groupId);
