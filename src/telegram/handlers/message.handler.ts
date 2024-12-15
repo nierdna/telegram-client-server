@@ -54,7 +54,6 @@ export class MessageHandler {
   }
 
   private getChatId(event: NewMessageEvent): string {
-    const peerId = event.message.peerId;
-    return `${((peerId as any)?.channelId || (peerId as any)?.chatId)?.toString()}`;
+    return event.chatId?.toString() || "";
   }
 }
