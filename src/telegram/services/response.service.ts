@@ -7,7 +7,7 @@ import { TelegramClient } from 'telegram';
 @Injectable()
 export class ResponseService {
   private readonly logger = new Logger(ResponseService.name);
-  private nextResponseTime: number | null = null;
+  private nextResponseTimes: Map<string, number> = new Map();
   private readonly minDelayMinutes: number;
   private readonly maxDelayMinutes: number;
   private readonly API_URL =
@@ -43,7 +43,7 @@ export class ResponseService {
   ): Promise<void> {
     const currentTime = Date.now();
 
-    if (!this.shouldRespond(currentTime)) {
+    if (!this.shouldRespond(currentTime, groupId)) {
       return;
     }
 
@@ -56,29 +56,32 @@ export class ResponseService {
         Math.random() > 0.5 ? replyToMessageId : undefined // random reply to message
       );
 
-      this.updateNextResponseTime();
+      this.updateNextResponseTime(groupId);
 
       this.logger.log(
-        `Response sent. Next response scheduled for: ${new Date(this.nextResponseTime!)}`
+        `Response sent for group ${groupId}. Next response scheduled for: ${new Date(this.nextResponseTimes.get(groupId)!)}`
       );
     } catch (error) {
-      this.logger.error("Failed to handle message:", error);
+      this.logger.error(
+        `Failed to handle message for group ${groupId}:`,
+        error
+      );
       throw error;
     }
   }
 
-  private shouldRespond(currentTime: number): boolean {
-    if (!this.nextResponseTime) {
-      this.updateNextResponseTime();
+  private shouldRespond(currentTime: number, groupId: string): boolean {
+    if (!this.nextResponseTimes.has(groupId)) {
+      this.updateNextResponseTime(groupId);
       return true;
     }
 
-    return currentTime >= this.nextResponseTime;
+    return currentTime >= this.nextResponseTimes.get(groupId)!;
   }
 
-  private updateNextResponseTime(): void {
+  private updateNextResponseTime(groupId: string): void {
     const delayMinutes = this.getRandomDelay();
-    this.nextResponseTime = Date.now() + delayMinutes * 60 * 1000;
+    this.nextResponseTimes.set(groupId, Date.now() + delayMinutes * 60 * 1000);
   }
 
   private getRandomDelay(): number {
@@ -110,8 +113,9 @@ export class ResponseService {
     }
   }
 
-  getNextResponseTime(): Date | null {
-    return this.nextResponseTime ? new Date(this.nextResponseTime) : null;
+  getNextResponseTime(groupId: string): Date | null {
+    const nextTime = this.nextResponseTimes.get(groupId);
+    return nextTime ? new Date(nextTime) : null;
   }
 
   getDelayConfig(): { min: number; max: number } {
