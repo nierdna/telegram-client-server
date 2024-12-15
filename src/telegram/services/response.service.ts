@@ -9,8 +9,12 @@ export class ResponseService {
   private readonly aiReplyAssistantUrl: string;
   private readonly logger = new Logger(ResponseService.name);
   private nextResponseTime: number | null = null;
-  private readonly MIN_DELAY_MINUTES = 1;
-  private readonly MAX_DELAY_MINUTES = 5;
+  private readonly MIN_DELAY_MINUTES = Number(
+    process.env.MIN_DELAY_MINUTES || 60
+  );
+  private readonly MAX_DELAY_MINUTES = Number(
+    process.env.MAX_DELAY_MINUTES || 90
+  );
 
   constructor(
     private readonly messageService: MessageService,
