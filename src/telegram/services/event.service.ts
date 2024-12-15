@@ -1,10 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { NewMessage } from 'telegram/events';
-import { TelegramEvent } from '../interfaces/telegram-event.interface';
-import { MessageHandler } from '../handlers/message.handler';
-import { ResponseService } from './response.service';
-import { ReactionService } from './reaction.service';
-import { ClientService } from './client.service';
+import { Injectable, Logger } from "@nestjs/common";
+import { NewMessage, NewMessageEvent } from "telegram/events";
+import { TelegramEvent } from "../interfaces/telegram-event.interface";
+import { MessageHandler } from "../handlers/message.handler";
+import { ResponseService } from "./response.service";
+import { ReactionService } from "./reaction.service";
+import { ClientService } from "./client.service";
 
 @Injectable()
 export class EventService {
@@ -15,12 +15,12 @@ export class EventService {
   constructor(
     private readonly clientService: ClientService,
     private readonly responseService: ResponseService,
-    private readonly reactionService: ReactionService,
+    private readonly reactionService: ReactionService
   ) {}
 
   async setupEventHandlers() {
     if (this.isSetup) {
-      this.logger.warn('Event handlers already set up');
+      this.logger.warn("Event handlers already set up");
       return;
     }
 
@@ -29,27 +29,24 @@ export class EventService {
       this.messageHandler = new MessageHandler(groupIds);
 
       const client = this.clientService.getClient();
-      
+
       // Set up event handler for new messages
-      client.addEventHandler(
-        async (event) => {
-          await this.handleEvent(event);
-        },
-        new NewMessage(this.messageHandler.getNewMessageOptions())
-      );
+      client.addEventHandler(async (event) => {
+        await this.handleEvent(event);
+      }, new NewMessage(this.messageHandler.getNewMessageOptions()));
 
       this.isSetup = true;
-      this.logger.log('Event handlers set up successfully');
+      this.logger.log("Event handlers set up successfully");
     } catch (error) {
-      this.logger.error('Failed to set up event handlers:', error);
+      this.logger.error("Failed to set up event handlers:", error);
       throw error;
     }
   }
 
-  private async handleEvent(event: any) {
+  private async handleEvent(event: NewMessageEvent) {
     try {
       if (!this.messageHandler) {
-        throw new Error('Message handler not initialized');
+        throw new Error("Message handler not initialized");
       }
 
       const telegramEvent = await this.messageHandler.handleNewMessage(event);
@@ -57,7 +54,7 @@ export class EventService {
         await this.processNewMessage(telegramEvent);
       }
     } catch (error) {
-      this.logger.error('Error handling event:', error);
+      this.logger.error("Error handling event:", error);
     }
   }
 
@@ -67,26 +64,20 @@ export class EventService {
     }
 
     const client = this.clientService.getClient();
-    const groupId = event.message.fromId?.toString() || '';
+    const groupId = event.message.fromId;
 
-    this.logger.log(`Processing message in group ${groupId}: ${event.message.text}`);
+    this.logger.log(
+      `Processing message in group ${groupId}: ${event.message.text}`
+    );
 
     try {
       // Handle AI response
-      await this.responseService.handleMessage(
-        event.message,
-        client,
-        groupId
-      );
+      await this.responseService.handleMessage(event.message, client, groupId);
 
       // Handle reaction
-      await this.reactionService.handleReaction(
-        event.message,
-        client,
-        groupId
-      );
+      await this.reactionService.handleReaction(event.message, client, groupId);
     } catch (error) {
-      this.logger.error('Error processing message:', error);
+      this.logger.error("Error processing message:", error);
     }
   }
 }
