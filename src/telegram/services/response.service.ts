@@ -38,7 +38,12 @@ export class ResponseService {
 
     try {
       const response = await this.getAIResponse(message.text);
-      await this.messageService.sendMessage(client, groupId, response);
+      await this.messageService.sendMessage(
+        client,
+        groupId,
+        response,
+        message.id
+      );
 
       // Set next response time
       this.updateNextResponseTime();
