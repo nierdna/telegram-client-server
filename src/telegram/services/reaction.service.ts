@@ -19,8 +19,8 @@ export class ReactionService {
     "🥰",
   ];
   private nextReactionTime: number | null = null;
-  private readonly MIN_DELAY_MINUTES = 2;
-  private readonly MAX_DELAY_MINUTES = 8;
+  private readonly MIN_DELAY_MINUTES = 30;
+  private readonly MAX_DELAY_MINUTES = 60;
 
   async handleReaction(
     message: Message,
