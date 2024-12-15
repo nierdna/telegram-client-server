@@ -42,7 +42,7 @@ export class ResponseService {
         client,
         groupId,
         response,
-        message.id
+        Math.random() > 0.5 ? message.id : undefined
       );
 
       // Set next response time
