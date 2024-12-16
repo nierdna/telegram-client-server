@@ -19,7 +19,7 @@ import databaseConfig from "./config/database.config";
         password: configService.get("database.password"),
         database: configService.get("database.database"),
         entities: [TelegramClient],
-        synchronize: configService.get("database.synchronize"),
+        synchronize: true,
         ssl: configService.get("database.host").includes("localhost")
           ? false
           : {
