@@ -20,7 +20,7 @@ export class ReactionService {
     "🥰",
   ];
   private nextReactionTime: number = 0;
-  private queue: RequestQueue;
+  private queue: RequestQueue = new RequestQueue();
   private readonly minDelayMinutes: number;
   private readonly maxDelayMinutes: number;
 

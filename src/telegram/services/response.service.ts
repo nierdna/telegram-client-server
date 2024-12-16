@@ -94,6 +94,49 @@ export class ResponseService {
     });
   }
 
+  async handleMessageConversation(
+    messages: { user: string; content: string }[],
+    client: TelegramClient,
+    replyToMessageId: number
+  ): Promise<void> {
+    await this.queue.add(async () => {
+      const currentTime = Date.now();
+
+      if (!this.shouldRespond(currentTime)) {
+        return;
+      }
+
+      try {
+        const response = await this.getAIResponseConversation(
+          this.clientService.characterId ||
+            "d089d51f-e1fa-4ae1-b85a-1e00fe8bc295",
+          messages
+        );
+
+        await this.messageService.sendMessage(
+          client,
+          this.groupId,
+          response,
+          Math.random() > 0.5 ? replyToMessageId : undefined
+        );
+
+        this.updateNextResponseTime();
+
+        this.logger.log(
+          `Response sent for group ${this.groupId}. Next response scheduled for: ${new Date(
+            this.nextResponseTime
+          )}`
+        );
+      } catch (error) {
+        this.logger.error(
+          `Failed to handle message for group ${this.groupId}:`,
+          error
+        );
+        throw error;
+      }
+    });
+  }
+
   private shouldRespond(currentTime: number): boolean {
     if (!this.nextResponseTime) {
       this.updateNextResponseTime();
@@ -170,6 +213,53 @@ export class ResponseService {
         );
       }
 
+      this.logger.error("Failed to get AI response:", error);
+      throw new Error("Failed to generate AI response");
+    }
+  }
+
+  // curl -X 'POST' \
+  // 'https://ai-reply-assistant-api.roadto1m.xyz/characters/first_agent/chat/conversation' \
+  // -H 'accept: */*' \
+  // -H 'Content-Type: application/json' \
+  // -d '{
+  // "messages": [
+  //   {
+  //     "user": "Đạt",
+  //     "content": "Hôm nay có kèo gì ngon không em zai?"
+  //   },
+  //   {
+  //     "user": "Nguyên",
+  //     "content": "Méo biết, có mấy con meme mới launch trên solana thôi"
+  //   },
+  //   {
+  //     "user": "Quân",
+  //     "content": "Ừm, tôi cũng thấy có mấy con ngon phết"
+  //   }
+  //   ]
+  // }'
+  async getAIResponseConversation(
+    characterId: string,
+    messages: { user: string; content: string }[]
+  ): Promise<string> {
+    try {
+      const response = await axios.post<AIServiceResponse>(
+        `${this.apiUrl}/characters/${characterId}/chat/conversation`,
+        { messages },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "*/*",
+          },
+        }
+      );
+
+      if (!response.data) {
+        throw new Error("Invalid response format from AI service");
+      }
+
+      return response.data.data;
+    } catch (error) {
       this.logger.error("Failed to get AI response:", error);
       throw new Error("Failed to generate AI response");
     }

@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import { TelegramEvent } from '../interfaces/telegram-event.interface';
 import { Message } from '../interfaces/message.interface';
 import { NewMessageEvent } from "telegram/events";
+import { Api } from "telegram";
 
 export class MessageHandler {
   private readonly logger = new Logger(MessageHandler.name);
@@ -42,6 +43,10 @@ export class MessageHandler {
       text: event.message.text || "",
       date: new Date(event.message.date * 1000), // Convert Unix timestamp to Date
       fromId: chatId,
+      fromUser:
+        (event.message.sender as Api.User).username ||
+        event.message.senderId?.toString() ||
+        "",
     };
   }
 
