@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { TelegramClient } from 'telegram';
-import { Message } from '../interfaces/message.interface';
-import { Api } from 'telegram';
+import { Injectable, Logger } from "@nestjs/common";
+import { TelegramClient } from "telegram";
+import { Message } from "../interfaces/message.interface";
+import { Api } from "telegram";
+import { RequestQueue } from "@/queue";
 
 @Injectable()
 export class ReactionService {
@@ -19,6 +20,7 @@ export class ReactionService {
     "🥰",
   ];
   private nextReactionTimes: Map<string, number> = new Map();
+  private queues: Map<string, RequestQueue> = new Map();
   private readonly minDelayMinutes: number;
   private readonly maxDelayMinutes: number;
 
@@ -45,22 +47,34 @@ export class ReactionService {
     client: TelegramClient,
     groupId: string
   ): Promise<void> {
-    const currentTime = Date.now();
-
-    if (!this.shouldReact(currentTime, groupId)) {
-      return;
+    if (!this.queues.has(groupId)) {
+      this.queues.set(groupId, new RequestQueue());
     }
 
-    try {
-      await this.addRandomReaction(client, groupId, message.id);
-      this.updateNextReactionTime(groupId);
+    const queue = this.queues.get(groupId)!;
 
-      this.logger.log(
-        `Reaction added for group ${groupId}. Next reaction scheduled for: ${new Date(this.nextReactionTimes.get(groupId)!)}`
-      );
-    } catch (error) {
-      this.logger.error(`Failed to add reaction for group ${groupId}:`, error);
-    }
+    await queue.add(async () => {
+      const currentTime = Date.now();
+
+      if (!this.shouldReact(currentTime, groupId)) {
+        return;
+      }
+
+      try {
+        await this.addRandomReaction(client, groupId, message.id);
+        this.updateNextReactionTime(groupId);
+
+        this.logger.log(
+          `Reaction added for group ${groupId}. Next reaction scheduled for: ${new Date(this.nextReactionTimes.get(groupId)!)}`
+        );
+      } catch (error) {
+        this.logger.error(
+          `Failed to add reaction for group ${groupId}:`,
+          error
+        );
+        throw error;
+      }
+    });
   }
 
   private shouldReact(currentTime: number, groupId: string): boolean {
@@ -97,12 +111,10 @@ export class ReactionService {
     try {
       const reaction = this.getRandomReaction();
 
-      // Create a Reaction object using the Api.Reaction class
       const reactionObj = new Api.ReactionEmoji({
         emoticon: reaction,
       });
 
-      // Send the reaction using the correct method
       await client.invoke(
         new Api.messages.SendReaction({
           peer: groupId,
