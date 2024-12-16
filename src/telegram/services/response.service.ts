@@ -18,13 +18,14 @@ interface AIServiceResponse {
 @Injectable()
 export class ResponseService {
   private readonly logger = new Logger(ResponseService.name);
-  private nextResponseTimes: Map<string, number> = new Map();
-  private queues: Map<string, RequestQueue> = new Map();
+  private nextResponseTime: number = 0;
+  private queue = new RequestQueue();
   private readonly minDelayMinutes: number;
   private readonly maxDelayMinutes: number;
   private readonly apiUrl: string;
 
   constructor(
+    private readonly groupId: string,
     private readonly clientService: ClientService,
     private readonly messageService: MessageService,
     minDelayMinutes: number = 1,
@@ -52,19 +53,12 @@ export class ResponseService {
   async handleMessage(
     message: Message,
     client: TelegramClient,
-    groupId: string,
     replyToMessageId: number
   ): Promise<void> {
-    if (!this.queues.has(groupId)) {
-      this.queues.set(groupId, new RequestQueue());
-    }
-
-    const queue = this.queues.get(groupId)!;
-
-    await queue.add(async () => {
+    await this.queue.add(async () => {
       const currentTime = Date.now();
 
-      if (!this.shouldRespond(currentTime, groupId)) {
+      if (!this.shouldRespond(currentTime)) {
         return;
       }
 
@@ -73,26 +67,26 @@ export class ResponseService {
           this.clientService.characterId ||
             "d089d51f-e1fa-4ae1-b85a-1e00fe8bc295",
           message.text,
-          groupId
+          this.groupId
         );
 
         await this.messageService.sendMessage(
           client,
-          groupId,
+          this.groupId,
           response,
           Math.random() > 0.5 ? replyToMessageId : undefined
         );
 
-        this.updateNextResponseTime(groupId);
+        this.updateNextResponseTime();
 
         this.logger.log(
-          `Response sent for group ${groupId}. Next response scheduled for: ${new Date(
-            this.nextResponseTimes.get(groupId)!
+          `Response sent for group ${this.groupId}. Next response scheduled for: ${new Date(
+            this.nextResponseTime
           )}`
         );
       } catch (error) {
         this.logger.error(
-          `Failed to handle message for group ${groupId}:`,
+          `Failed to handle message for group ${this.groupId}:`,
           error
         );
         throw error;
@@ -100,18 +94,18 @@ export class ResponseService {
     });
   }
 
-  private shouldRespond(currentTime: number, groupId: string): boolean {
-    if (!this.nextResponseTimes.has(groupId)) {
-      this.updateNextResponseTime(groupId);
+  private shouldRespond(currentTime: number): boolean {
+    if (!this.nextResponseTime) {
+      this.updateNextResponseTime();
       return true;
     }
 
-    return currentTime >= this.nextResponseTimes.get(groupId)!;
+    return currentTime >= this.nextResponseTime;
   }
 
-  private updateNextResponseTime(groupId: string): void {
+  private updateNextResponseTime(): void {
     const delayMinutes = this.getRandomDelay();
-    this.nextResponseTimes.set(groupId, Date.now() + delayMinutes * 60 * 1000);
+    this.nextResponseTime = Date.now() + delayMinutes * 60 * 1000;
   }
 
   private getRandomDelay(): number {
@@ -181,9 +175,8 @@ export class ResponseService {
     }
   }
 
-  getNextResponseTime(groupId: string): Date | null {
-    const nextTime = this.nextResponseTimes.get(groupId);
-    return nextTime ? new Date(nextTime) : null;
+  getNextResponseTime(): Date | null {
+    return this.nextResponseTime ? new Date(this.nextResponseTime) : null;
   }
 
   getDelayConfig(): { min: number; max: number } {

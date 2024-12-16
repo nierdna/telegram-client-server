@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  OnModuleInit,
-  OnModuleDestroy,
-  Inject,
-} from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { TelegramClient } from "telegram";
 import { StringSession } from "telegram/sessions";
 import { EventService } from "./event.service";
@@ -12,6 +6,7 @@ import { ResponseService } from "./response.service";
 import { ReactionService } from "./reaction.service";
 import { MessageService } from "./message.service";
 import { ConfigService } from "@nestjs/config";
+import { GroupService } from "./group.service";
 
 @Injectable()
 export class ClientService {
@@ -19,8 +14,7 @@ export class ClientService {
   private client: TelegramClient | null = null;
   private isInitialized = false;
   eventService: EventService;
-  private responseService: ResponseService;
-  private reactionService: ReactionService;
+  private groupServices: Map<string, GroupService> = new Map();
 
   constructor(
     private readonly apiId: number,
@@ -28,33 +22,22 @@ export class ClientService {
     private readonly stringSession: string,
     private readonly groupIds: string[],
     private readonly messageService: MessageService,
-    private readonly minReplyDelay: number,
-    private readonly maxReplyDelay: number,
-    private readonly minReactionDelay: number,
-    private readonly maxReactionDelay: number,
+    readonly minReplyDelay: number,
+    readonly maxReplyDelay: number,
+    readonly minReactionDelay: number,
+    readonly maxReactionDelay: number,
     private readonly configService: ConfigService,
     readonly characterId: string
   ) {
-    // Initialize services with configured delays
-    this.responseService = new ResponseService(
-      this,
-      this.messageService,
-      this.minReplyDelay,
-      this.maxReplyDelay,
-      this.configService
-    );
-
-    this.reactionService = new ReactionService(
-      this.minReactionDelay,
-      this.maxReactionDelay
-    );
-
     // Initialize EventService with required dependencies
-    this.eventService = new EventService(
-      this,
-      this.responseService,
-      this.reactionService
-    );
+    this.eventService = new EventService(this);
+
+    this.groupIds.forEach((groupId) => {
+      this.groupServices.set(
+        groupId,
+        new GroupService(groupId, this, this.messageService, this.configService)
+      );
+    });
   }
 
   async onModuleInit() {
@@ -116,6 +99,10 @@ export class ClientService {
 
   getGroupIds(): string[] {
     return this.groupIds;
+  }
+
+  getGroupServices(): Map<string, GroupService> {
+    return this.groupServices;
   }
 
   getEventService(): EventService {

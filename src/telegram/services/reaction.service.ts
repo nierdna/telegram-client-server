@@ -19,12 +19,16 @@ export class ReactionService {
     "😡",
     "🥰",
   ];
-  private nextReactionTimes: Map<string, number> = new Map();
-  private queues: Map<string, RequestQueue> = new Map();
+  private nextReactionTime: number = 0;
+  private queue: RequestQueue;
   private readonly minDelayMinutes: number;
   private readonly maxDelayMinutes: number;
 
-  constructor(minDelayMinutes: number = 2, maxDelayMinutes: number = 8) {
+  constructor(
+    private readonly groupId: string,
+    minDelayMinutes: number = 2,
+    maxDelayMinutes: number = 8
+  ) {
     this.validateDelayTimes(minDelayMinutes, maxDelayMinutes);
     this.minDelayMinutes = minDelayMinutes;
     this.maxDelayMinutes = maxDelayMinutes;
@@ -44,32 +48,27 @@ export class ReactionService {
 
   async handleReaction(
     message: Message,
-    client: TelegramClient,
-    groupId: string
+    client: TelegramClient
   ): Promise<void> {
-    if (!this.queues.has(groupId)) {
-      this.queues.set(groupId, new RequestQueue());
-    }
-
-    const queue = this.queues.get(groupId)!;
+    const queue = this.queue;
 
     await queue.add(async () => {
       const currentTime = Date.now();
 
-      if (!this.shouldReact(currentTime, groupId)) {
+      if (!this.shouldReact(currentTime)) {
         return;
       }
 
       try {
-        await this.addRandomReaction(client, groupId, message.id);
-        this.updateNextReactionTime(groupId);
+        await this.addRandomReaction(client, message.id);
+        this.updateNextReactionTime();
 
         this.logger.log(
-          `Reaction added for group ${groupId}. Next reaction scheduled for: ${new Date(this.nextReactionTimes.get(groupId)!)}`
+          `Reaction added for group ${this.groupId}. Next reaction scheduled for: ${new Date(this.nextReactionTime)}`
         );
       } catch (error) {
         this.logger.error(
-          `Failed to add reaction for group ${groupId}:`,
+          `Failed to add reaction for group ${this.groupId}:`,
           error
         );
         throw error;
@@ -77,18 +76,18 @@ export class ReactionService {
     });
   }
 
-  private shouldReact(currentTime: number, groupId: string): boolean {
-    if (!this.nextReactionTimes.has(groupId)) {
-      this.updateNextReactionTime(groupId);
+  private shouldReact(currentTime: number): boolean {
+    if (!this.nextReactionTime) {
+      this.updateNextReactionTime();
       return true;
     }
 
-    return currentTime >= this.nextReactionTimes.get(groupId)!;
+    return currentTime >= this.nextReactionTime;
   }
 
-  private updateNextReactionTime(groupId: string): void {
+  private updateNextReactionTime(): void {
     const delayMinutes = this.getRandomDelay();
-    this.nextReactionTimes.set(groupId, Date.now() + delayMinutes * 60 * 1000);
+    this.nextReactionTime = Date.now() + delayMinutes * 60 * 1000;
   }
 
   private getRandomDelay(): number {
@@ -105,7 +104,6 @@ export class ReactionService {
 
   private async addRandomReaction(
     client: TelegramClient,
-    groupId: string,
     messageId: number
   ): Promise<void> {
     try {
@@ -117,7 +115,7 @@ export class ReactionService {
 
       await client.invoke(
         new Api.messages.SendReaction({
-          peer: groupId,
+          peer: this.groupId,
           msgId: messageId,
           reaction: [reactionObj],
         })
