@@ -1,10 +1,19 @@
-import { Inject, Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import axios from "axios";
 import { MessageService } from "./message.service";
 import { Message } from "../interfaces/message.interface";
 import { TelegramClient } from "telegram";
 import { ConfigService } from "@nestjs/config";
+import { ClientService } from "./client.service";
 
+interface AIServiceRequest {
+  prompt: string;
+  chatId: string;
+}
+
+interface AIServiceResponse {
+  data: string;
+}
 @Injectable()
 export class ResponseService {
   private readonly logger = new Logger(ResponseService.name);
@@ -14,6 +23,7 @@ export class ResponseService {
   private readonly apiUrl: string;
 
   constructor(
+    private readonly clientService: ClientService,
     private readonly messageService: MessageService,
     minDelayMinutes: number = 1,
     maxDelayMinutes: number = 5,
@@ -50,7 +60,12 @@ export class ResponseService {
     }
 
     try {
-      const response = await this.getAIResponse(message.text);
+      const response = await this.getAIResponse(
+        this.clientService.characterId ||
+          "d089d51f-e1fa-4ae1-b85a-1e00fe8bc295",
+        message.text,
+        groupId
+      );
       await this.messageService.sendMessage(
         client,
         groupId,
@@ -93,23 +108,61 @@ export class ResponseService {
     );
   }
 
-  private async getAIResponse(message: string): Promise<string> {
+  //   curl -X 'POST' \
+  //   'https://ai-reply-assistant-api.roadto1m.xyz/characters/d089d51f-e1fa-4ae1-b85a-1e00fe8bc295/chat' \
+  //   -H 'accept: */*' \
+  //   -H 'Content-Type: application/json' \
+  //   -d '{
+  //   "prompt": "Chào chú",
+  //   "chatId": "chat-123"
+  //   }'
+  private async getAIResponse(
+    characterId: string,
+    message: string,
+    chatId: string
+  ): Promise<string> {
     try {
-      const response = await axios.post(
-        this.apiUrl,
-        { message },
+      if (!characterId) {
+        throw new Error("Character ID is required");
+      }
+
+      const requestData: AIServiceRequest = {
+        prompt: message,
+        chatId,
+      };
+
+      const response = await axios.post<AIServiceResponse>(
+        `${this.apiUrl}/characters/${characterId}/chat`,
+        requestData,
         {
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "*/*",
+          },
           timeout: 10000, // 10 second timeout
         }
       );
 
-      if (!response.data || !response.data.response) {
+      if (!response.data) {
         throw new Error("Invalid response format from AI service");
       }
 
-      return response.data.response;
+      return response.data.data;
     } catch (error) {
+      if (axios.isAxiosError(error)) {
+        this.logger.error(
+          `Failed to get AI response: ${error.message}`,
+          error.response?.data
+        );
+        throw new Error(
+          `AI service error: ${
+            error.response?.status
+              ? `${error.response.status} - ${error.message}`
+              : "Network error"
+          }`
+        );
+      }
+
       this.logger.error("Failed to get AI response:", error);
       throw new Error("Failed to generate AI response");
     }

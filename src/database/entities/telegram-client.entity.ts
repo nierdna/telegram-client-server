@@ -7,7 +7,7 @@ import {
   DeleteDateColumn,
 } from "typeorm";
 
-@Entity('telegram_client')
+@Entity("telegram_client")
 export class TelegramClient {
   @PrimaryGeneratedColumn()
   id: number;
@@ -38,6 +38,13 @@ export class TelegramClient {
 
   @Column({ name: "max_reaction_delay_minutes", type: "int", default: 8 })
   maxReactionDelayMinutes: number;
+
+  @Column({
+    name: "character_id",
+    nullable: true,
+    default: "d089d51f-e1fa-4ae1-b85a-1e00fe8bc295",
+  })
+  characterId: string;
 
   @CreateDateColumn({
     name: "created_at",

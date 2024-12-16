@@ -66,7 +66,8 @@ export class ClientManagerService {
         config.minReplyDelayMinutes,
         config.maxReplyDelayMinutes,
         config.minReactionDelayMinutes,
-        config.maxReactionDelayMinutes
+        config.maxReactionDelayMinutes,
+        config.characterId
       );
 
       await clientService.onModuleInit();

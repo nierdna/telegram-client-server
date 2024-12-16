@@ -18,7 +18,8 @@ export class ClientFactory {
     minReplyDelay: number = 1,
     maxReplyDelay: number = 5,
     minReactionDelay: number = 2,
-    maxReactionDelay: number = 8
+    maxReactionDelay: number = 8,
+    characterId: string
   ): ClientService {
     return new ClientService(
       apiId,
@@ -30,7 +31,8 @@ export class ClientFactory {
       maxReplyDelay,
       minReactionDelay,
       maxReactionDelay,
-      this.configService
+      this.configService,
+      characterId
     );
   }
 }

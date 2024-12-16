@@ -32,10 +32,12 @@ export class ClientService {
     private readonly maxReplyDelay: number,
     private readonly minReactionDelay: number,
     private readonly maxReactionDelay: number,
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
+    readonly characterId: string
   ) {
     // Initialize services with configured delays
     this.responseService = new ResponseService(
+      this,
       this.messageService,
       this.minReplyDelay,
       this.maxReplyDelay,
