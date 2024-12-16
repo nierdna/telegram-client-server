@@ -96,7 +96,7 @@ export class ResponseService {
   private async getAIResponse(message: string): Promise<string> {
     try {
       const response = await axios.post(
-        this.API_URL,
+        this.apiUrl,
         { message },
         {
           headers: { "Content-Type": "application/json" },
