@@ -10,7 +10,7 @@ export class GroupService {
   private readonly logger = new Logger(GroupService.name);
   private readonly reactionService: ReactionService;
   private readonly responseService: ResponseService;
-  private messages: { user: string; message: string }[] = [];
+  private messages: { user: string; content: string }[] = [];
 
   constructor(
     private readonly groupId: string,
@@ -46,10 +46,10 @@ export class GroupService {
   }
 
   async handleResponse(message: Message) {
-    this.messages.push({ user: message.fromUser, message: message.text });
+    this.messages.push({ user: message.fromUser, content: message.text });
     try {
-      await this.responseService.handleMessage(
-        message,
+      await this.responseService.handleMessageConversation(
+        this.messages,
         this.clientService.getClient(),
         message.id
       );
