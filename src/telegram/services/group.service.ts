@@ -47,6 +47,10 @@ export class GroupService {
 
   async handleResponse(message: Message) {
     this.messages.push({ user: message.fromUser, content: message.text });
+    // limit messages to 300
+    if (this.messages.length > 300) {
+      this.messages = this.messages.slice(-300);
+    }
     try {
       await this.responseService.handleMessageConversation(
         this.messages,
