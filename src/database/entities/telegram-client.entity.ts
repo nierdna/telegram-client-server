@@ -7,7 +7,7 @@ import {
   DeleteDateColumn,
 } from "typeorm";
 
-@Entity()
+@Entity('telegram_client')
 export class TelegramClient {
   @PrimaryGeneratedColumn()
   id: number;
