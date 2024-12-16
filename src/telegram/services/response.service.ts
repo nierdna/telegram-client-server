@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import axios from 'axios';
-import { MessageService } from './message.service';
-import { Message } from '../interfaces/message.interface';
-import { TelegramClient } from 'telegram';
+import { Inject, Injectable, Logger } from "@nestjs/common";
+import axios from "axios";
+import { MessageService } from "./message.service";
+import { Message } from "../interfaces/message.interface";
+import { TelegramClient } from "telegram";
+import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class ResponseService {
@@ -10,17 +11,18 @@ export class ResponseService {
   private nextResponseTimes: Map<string, number> = new Map();
   private readonly minDelayMinutes: number;
   private readonly maxDelayMinutes: number;
-  private readonly API_URL =
-    "https://bolt-ai-reply-assistan-server.vercel.app/api/chat";
+  private readonly apiUrl: string;
 
   constructor(
     private readonly messageService: MessageService,
     minDelayMinutes: number = 1,
-    maxDelayMinutes: number = 5
+    maxDelayMinutes: number = 5,
+    private readonly configService: ConfigService
   ) {
     this.validateDelayTimes(minDelayMinutes, maxDelayMinutes);
     this.minDelayMinutes = minDelayMinutes;
     this.maxDelayMinutes = maxDelayMinutes;
+    this.apiUrl = this.configService.get("aiReplyAssistant.apiUrl") || "";
   }
 
   private validateDelayTimes(min: number, max: number): void {

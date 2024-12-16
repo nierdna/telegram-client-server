@@ -1,10 +1,14 @@
 import { Injectable } from "@nestjs/common";
 import { ClientService } from "./client.service";
 import { MessageService } from "./message.service";
+import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class ClientFactory {
-  constructor(private readonly messageService: MessageService) {}
+  constructor(
+    private readonly messageService: MessageService,
+    private readonly configService: ConfigService
+  ) {}
 
   createClient(
     apiId: number,
@@ -25,7 +29,8 @@ export class ClientFactory {
       minReplyDelay,
       maxReplyDelay,
       minReactionDelay,
-      maxReactionDelay
+      maxReactionDelay,
+      this.configService
     );
   }
 }

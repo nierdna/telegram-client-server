@@ -1,10 +1,17 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
-import { TelegramClient } from 'telegram';
-import { StringSession } from 'telegram/sessions';
-import { EventService } from './event.service';
-import { ResponseService } from './response.service';
-import { ReactionService } from './reaction.service';
-import { MessageService } from './message.service';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+  Inject,
+} from "@nestjs/common";
+import { TelegramClient } from "telegram";
+import { StringSession } from "telegram/sessions";
+import { EventService } from "./event.service";
+import { ResponseService } from "./response.service";
+import { ReactionService } from "./reaction.service";
+import { MessageService } from "./message.service";
+import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class ClientService {
@@ -24,13 +31,15 @@ export class ClientService {
     private readonly minReplyDelay: number,
     private readonly maxReplyDelay: number,
     private readonly minReactionDelay: number,
-    private readonly maxReactionDelay: number
+    private readonly maxReactionDelay: number,
+    private readonly configService: ConfigService
   ) {
     // Initialize services with configured delays
     this.responseService = new ResponseService(
       this.messageService,
       this.minReplyDelay,
-      this.maxReplyDelay
+      this.maxReplyDelay,
+      this.configService
     );
 
     this.reactionService = new ReactionService(
