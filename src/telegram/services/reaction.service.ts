@@ -32,7 +32,7 @@ export class ReactionService {
     if (min < 0) {
       throw new Error("Minimum delay cannot be negative");
     }
-    if (max <= min) {
+    if (max < min) {
       throw new Error("Maximum delay must be greater than minimum delay");
     }
     if (!Number.isInteger(min) || !Number.isInteger(max)) {

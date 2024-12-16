@@ -5,6 +5,7 @@ import { Message } from "../interfaces/message.interface";
 import { TelegramClient } from "telegram";
 import { ConfigService } from "@nestjs/config";
 import { ClientService } from "./client.service";
+import { RequestQueue } from "@/queue";
 
 interface AIServiceRequest {
   prompt: string;
@@ -18,6 +19,7 @@ interface AIServiceResponse {
 export class ResponseService {
   private readonly logger = new Logger(ResponseService.name);
   private nextResponseTimes: Map<string, number> = new Map();
+  private queues: Map<string, RequestQueue> = new Map();
   private readonly minDelayMinutes: number;
   private readonly maxDelayMinutes: number;
   private readonly apiUrl: string;
@@ -39,7 +41,7 @@ export class ResponseService {
     if (min < 0) {
       throw new Error("Minimum delay cannot be negative");
     }
-    if (max <= min) {
+    if (max < min) {
       throw new Error("Maximum delay must be greater than minimum delay");
     }
     if (!Number.isInteger(min) || !Number.isInteger(max)) {
@@ -53,38 +55,49 @@ export class ResponseService {
     groupId: string,
     replyToMessageId: number
   ): Promise<void> {
-    const currentTime = Date.now();
-
-    if (!this.shouldRespond(currentTime, groupId)) {
-      return;
+    if (!this.queues.has(groupId)) {
+      this.queues.set(groupId, new RequestQueue());
     }
 
-    try {
-      const response = await this.getAIResponse(
-        this.clientService.characterId ||
-          "d089d51f-e1fa-4ae1-b85a-1e00fe8bc295",
-        message.text,
-        groupId
-      );
-      await this.messageService.sendMessage(
-        client,
-        groupId,
-        response,
-        Math.random() > 0.5 ? replyToMessageId : undefined // random reply to message
-      );
+    const queue = this.queues.get(groupId)!;
 
-      this.updateNextResponseTime(groupId);
+    await queue.add(async () => {
+      const currentTime = Date.now();
 
-      this.logger.log(
-        `Response sent for group ${groupId}. Next response scheduled for: ${new Date(this.nextResponseTimes.get(groupId)!)}`
-      );
-    } catch (error) {
-      this.logger.error(
-        `Failed to handle message for group ${groupId}:`,
-        error
-      );
-      throw error;
-    }
+      if (!this.shouldRespond(currentTime, groupId)) {
+        return;
+      }
+
+      try {
+        const response = await this.getAIResponse(
+          this.clientService.characterId ||
+            "d089d51f-e1fa-4ae1-b85a-1e00fe8bc295",
+          message.text,
+          groupId
+        );
+
+        await this.messageService.sendMessage(
+          client,
+          groupId,
+          response,
+          Math.random() > 0.5 ? replyToMessageId : undefined
+        );
+
+        this.updateNextResponseTime(groupId);
+
+        this.logger.log(
+          `Response sent for group ${groupId}. Next response scheduled for: ${new Date(
+            this.nextResponseTimes.get(groupId)!
+          )}`
+        );
+      } catch (error) {
+        this.logger.error(
+          `Failed to handle message for group ${groupId}:`,
+          error
+        );
+        throw error;
+      }
+    });
   }
 
   private shouldRespond(currentTime: number, groupId: string): boolean {
