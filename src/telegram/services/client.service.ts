@@ -2,8 +2,6 @@ import { Injectable, Logger } from "@nestjs/common";
 import { TelegramClient } from "telegram";
 import { StringSession } from "telegram/sessions";
 import { EventService } from "./event.service";
-import { ResponseService } from "./response.service";
-import { ReactionService } from "./reaction.service";
 import { MessageService } from "./message.service";
 import { ConfigService } from "@nestjs/config";
 import { GroupService } from "./group.service";
