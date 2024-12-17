@@ -5,6 +5,7 @@ import { ResponseService } from "./response.service";
 import { MessageService } from "./message.service";
 import { ConfigService } from "@nestjs/config";
 import { Logger } from "@nestjs/common";
+import { Api } from "telegram";
 
 export class GroupService {
   private readonly logger = new Logger(GroupService.name);
@@ -46,7 +47,27 @@ export class GroupService {
   }
 
   async handleResponse(message: Message) {
-    this.messages.push({ user: message.fromUser, content: message.text });
+    if (this.messages.length === 0) {
+      const historicalMessages = await this.clientService
+        .getClient()
+        .getMessages(this.groupId, {
+          limit: 100,
+          reverse: true,
+        });
+
+      this.messages.push(
+        ...historicalMessages.map((msg) => ({
+          user:
+            (msg.sender as Api.User)?.username ||
+            msg.sender?.id?.toString() ||
+            "unknown",
+          content: msg.text || "",
+        }))
+      );
+    } else {
+      this.messages.push({ user: message.fromUser, content: message.text });
+    }
+
     // limit messages to 300
     if (this.messages.length > 300) {
       this.messages = this.messages.slice(-300);
