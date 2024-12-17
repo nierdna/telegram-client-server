@@ -72,9 +72,10 @@ export class GroupService {
     if (this.messages.length > 300) {
       this.messages = this.messages.slice(-300);
     }
+
     try {
       await this.responseService.handleMessageConversation(
-        this.messages,
+        this.formatMessage(this.messages),
         this.clientService.getClient(),
         message.id
       );
@@ -82,5 +83,17 @@ export class GroupService {
       this.logger.error(`Failed to handle response for group ${this.groupId}:`);
       throw error;
     }
+  }
+
+  private formatMessage(
+    messages: {
+      user: string;
+      content: string;
+    }[]
+  ) {
+    return messages.map((item) => ({
+      ...item,
+      user: item.user === this.clientService.getUsername() ? "You" : item.user,
+    }));
   }
 }

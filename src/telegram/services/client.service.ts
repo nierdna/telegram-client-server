@@ -13,6 +13,7 @@ export class ClientService {
   private isInitialized = false;
   eventService: EventService;
   private groupServices: Map<string, GroupService> = new Map();
+  private username: string;
 
   constructor(
     private readonly apiId: number,
@@ -46,6 +47,8 @@ export class ClientService {
 
     try {
       this.client = await this.createClient();
+      const me = await this.client.getMe();
+      this.username = me.username?.toString() || me.id.toString();
       this.isInitialized = true;
 
       // Set up event handlers after client is initialized
@@ -105,5 +108,9 @@ export class ClientService {
 
   getEventService(): EventService {
     return this.eventService;
+  }
+
+  getUsername(): string {
+    return this.username;
   }
 }
