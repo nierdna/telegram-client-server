@@ -52,11 +52,10 @@ export class GroupService {
         .getClient()
         .getMessages(this.groupId, {
           limit: 100,
-          reverse: true,
         });
 
       this.messages.push(
-        ...historicalMessages.map((msg) => ({
+        ...historicalMessages.reverse().map((msg) => ({
           user:
             (msg.sender as Api.User)?.username ||
             msg.sender?.id?.toString() ||
