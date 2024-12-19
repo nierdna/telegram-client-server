@@ -128,6 +128,7 @@ export class ResponseService {
           )}`
         );
       } catch (error) {
+        this.updateNextResponseTime();
         this.logger.error(
           `Failed to handle message for group ${this.groupId}:`,
           error
