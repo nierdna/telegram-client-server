@@ -79,7 +79,7 @@ export class ReactionService {
   private shouldReact(currentTime: number): boolean {
     if (!this.nextReactionTime) {
       this.updateNextReactionTime();
-      return true;
+      return false;
     }
 
     return currentTime >= this.nextReactionTime;

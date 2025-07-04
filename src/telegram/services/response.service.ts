@@ -128,6 +128,7 @@ export class ResponseService {
           )}`
         );
       } catch (error) {
+        this.updateNextResponseTime();
         this.logger.error(
           `Failed to handle message for group ${this.groupId}:`,
           error
@@ -140,7 +141,7 @@ export class ResponseService {
   private shouldRespond(currentTime: number): boolean {
     if (!this.nextResponseTime) {
       this.updateNextResponseTime();
-      return true;
+      return false;
     }
 
     return currentTime >= this.nextResponseTime;

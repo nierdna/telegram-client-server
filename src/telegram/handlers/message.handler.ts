@@ -44,8 +44,8 @@ export class MessageHandler {
       date: new Date(event.message.date * 1000), // Convert Unix timestamp to Date
       fromId: chatId,
       fromUser:
-        (event.message.sender as Api.User).username ||
-        event.message.senderId?.toString() ||
+        (event?.message?.sender as Api.User)?.username ||
+        event?.message?.senderId?.toString() ||
         "",
     };
   }

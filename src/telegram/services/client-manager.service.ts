@@ -38,6 +38,7 @@ export class ClientManagerService {
     try {
       const configs = await this.clientRepository.find({
         where: { isActive: true },
+        order: { id: "ASC" },
       });
 
       for (const config of configs) {
